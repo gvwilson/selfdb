@@ -11,7 +11,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT; cd "$work"
 pass() { printf '\033[32mok\033[0m  %s\n' "$1"; }
 
@@ -32,7 +32,7 @@ done
 rm -f a/libambig.so b/libambig.so
 
 # ── pack BOTH roots into ONE database ────────────────────────────────
-python -m selfconv.cli closure --root appa --root appb -o both.db
+python -m selfconv closure --root appa --root appb -o both.db
 
 q() { sqlite3 both.db "$1"; }
 

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT; cd "$work"
 pass() { printf '\033[32mok\033[0m  %s\n' "$1"; }
 
@@ -18,7 +18,7 @@ test "$providers" -gt 1
 pass "a global soname->path table is ambiguous here ($providers libc.so.6)"
 
 # ── pack the binary + closure into one DB ────────────────────────────
-python -m selfconv.cli closure "$subj" all.db
+python -m selfconv closure "$subj" all.db
 n=$(sqlite3 all.db "SELECT count(*) FROM objects")
 test "$n" -ge 2
 pass "merged $n objects (exe + libs) into one SQLite file"

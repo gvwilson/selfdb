@@ -4,7 +4,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 cd "$work"
@@ -19,7 +19,7 @@ EOF
 cc hello.c -o hello
 ./hello > expected.txt
 
-python -m selfconv.elf2self hello hello.self
+python -m selfconv elf2self hello hello.self
 python -m selfconv.self2elf hello.self hello.rt
 ./hello.rt > got.txt
 diff expected.txt got.txt
@@ -32,11 +32,11 @@ grep -qi "application id.*SELF\|application id.*0x53454c46\|1397049158" <<<"$fil
 pass "hello.self is a SQLite database"
 
 # ── showcase queries ─────────────────────────────────────────────────
-test "$(python -m selfconv.cli q hello.self 'SELECT count(*) FROM ldd')" -ge 1
-python -m selfconv.cli q hello.self \
+test "$(python -m selfconv q hello.self 'SELECT count(*) FROM ldd')" -ge 1
+python -m selfconv q hello.self \
   "SELECT name, version FROM imports WHERE name = '__libc_start_main'" \
   | grep -q GLIBC
-python -m selfconv.cli q hello.self \
+python -m selfconv q hello.self \
   "SELECT count(*) FROM segments WHERE type='load'" | grep -qv '^0$'
 pass "showcase queries (ldd / imports / segments)"
 
@@ -52,7 +52,7 @@ pass "strip via DELETE+VACUUM ($before -> $after bytes), still runs"
 
 # ── subject 2: a real nixpkgs binary (coreutils ls) ─────────────────
 ls_bin="$(command -v ls)"
-python -m selfconv.elf2self "$ls_bin" ls.self
+python -m selfconv elf2self "$ls_bin" ls.self
 mkdir -p rt && python -m selfconv.self2elf ls.self rt/ls  # coreutils is a
 "$ls_bin" -la /nix > expected_ls.txt                      # multi-call binary:
 ./rt/ls   -la /nix > got_ls.txt                           # argv[0] must be 'ls'

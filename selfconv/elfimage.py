@@ -6,8 +6,8 @@ bytes, independent of LIEF. self2elf and the C loader implement the exact
 inverse of `parse_image`.
 """
 
-from dataclasses import dataclass
 import struct
+from dataclasses import dataclass
 
 EHDR_FMT = "<16sHHIQQQIHHHHHH"
 EHDR_SIZE = 64

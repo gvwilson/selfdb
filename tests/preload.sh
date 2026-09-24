@@ -6,7 +6,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 SELF_EXEC="$repo/loader/self-exec"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT; cd "$work"
 make -C "$repo/loader" >/dev/null
@@ -34,10 +34,10 @@ EOF
 cc -nostdlib -fPIC -pie -fno-plt app.c -L. -ladd -Wl,-rpath,'$ORIGIN' -o app
 rm -f libadd.so
 
-python -m selfconv.elf2self libadd.so.1 libadd.so.1.self >/dev/null 2>&1
-python -m selfconv.elf2self libmul.so.1 libmul.so.1.self >/dev/null 2>&1
-python -m selfconv.elf2self app app.self >/dev/null 2>&1
-python -m selfconv.cli scan --db system.db libadd.so.1.self >/dev/null 2>&1
+python -m selfconv elf2self libadd.so.1 libadd.so.1.self >/dev/null 2>&1
+python -m selfconv elf2self libmul.so.1 libmul.so.1.self >/dev/null 2>&1
+python -m selfconv elf2self app app.self >/dev/null 2>&1
+python -m selfconv scan --db system.db libadd.so.1.self >/dev/null 2>&1
 
 run() { set +e; SELF_MODE=selfld SELF_SYSTEM_DB="$PWD/system.db" "$SELF_EXEC" ./app.self 2>/dev/null; echo $?; set -e; }
 

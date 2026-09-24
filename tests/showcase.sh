@@ -5,7 +5,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 SELF_EXEC="$repo/loader/self-exec"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -19,7 +19,7 @@ cat > hello.c <<'EOF'
 int main(void){ puts("Hello, world!"); return 0; }
 EOF
 cc -O2 hello.c -o hello.elf
-python -m selfconv.elf2self hello.elf hello >/dev/null 2>&1
+python -m selfconv elf2self hello.elf hello >/dev/null 2>&1
 chmod +x hello
 
 hr "file hello"

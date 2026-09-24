@@ -22,7 +22,7 @@ Hello, world!
 
 ## What's here
 
-- `converter/` — `elf2self`, `self2elf`, and the `self` CLI (Python + LIEF).
+- `selfconv/` — the `self` CLI (subcommands include `elf2self`) and `self2elf` (Python + LIEF).
 - `loader/` — `self-exec`, the binfmt interpreter, with three modes:
   `memfd` (rebuild ELF → `execveat`), `native` (map segments + hand off to
   ld.so), `selfld` (be the dynamic linker, bind via SQL). Plus
@@ -38,6 +38,15 @@ Hello, world!
 - `bench/`, `tests/` — the evaluation harness and the test suite.
 
 Read [DESIGN.md](./DESIGN.md); §13 tracks implementation status.
+
+## Python Setup
+
+```console
+$ uv venv                            # once, to create virtual environment
+$ source .venv/bin/activate          # to activate the environment each time you start work
+$ uv sync                            # to install packages (only needed once)
+$ python -m selfconv -h              # each time you want to run the script
+```
 
 ## Try it
 

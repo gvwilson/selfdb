@@ -1,11 +1,14 @@
-"""self: the SELF swiss-army CLI (info / q / scan)."""
+"""self: the SELF swiss-army CLI."""
 
 import argparse
 import os
+import shutil
 import sqlite3
 import struct
 import sys
 
+from .closure import build_closure
+from .elf2self import convert
 from .schema import APPLICATION_ID
 from .self2elf import open_self
 
@@ -98,35 +101,83 @@ def cmd_scan(args) -> int:
     return 0
 
 
+def cmd_elf2self(args) -> int:
+    out = args.out or args.elf + ".self"
+    convert(args.elf, out, with_sections=not args.no_sections)
+    print(f"{args.elf} -> {out}", file=sys.stderr)
+    return 0
+
+
+def cmd_closure(args) -> int:
+    if not shutil.which("ldd"):
+        print("self closure: needs ldd on PATH", file=sys.stderr)
+        return 1
+
+    roots = ([args.binary] if args.binary else []) + args.root
+    if args.roots_from:
+        stream = sys.stdin if args.roots_from == "-" else open(args.roots_from)
+        with stream:
+            roots += [line.strip() for line in stream if line.strip()]
+    if not roots:
+        args.parser.error(
+            "give a root as an argument, with --root, or via --roots-from")
+
+    out = args.out_flag or args.out
+    if out is None:
+        if len(roots) > 1:
+            args.parser.error("several roots need an explicit -o/--out")
+        out = roots[0] + ".closure.db"
+
+    stats = build_closure(roots, out, with_segments=not args.no_segments)
+    for path in stats["skipped"]:
+        print(f"self closure: skipping {path}: not an ELF file", file=sys.stderr)
+    print(f"{stats['roots']} root(s) + closure -> {out} "
+          f"({stats['objects']} objects, {stats['edges']} edges)",
+          file=sys.stderr)
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="self", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
+
     p = sub.add_parser("info", help="summarize a SELF file")
     p.add_argument("file")
     p.set_defaults(fn=cmd_info)
+
     p = sub.add_parser("q", help="run SQL against a SELF file")
     p.add_argument("file")
     p.add_argument("sql")
     p.set_defaults(fn=cmd_q)
+
     p = sub.add_parser("scan", help="index objects into a resolver database")
     p.add_argument("--db", required=True)
     p.add_argument("paths", nargs="+")
     p.set_defaults(fn=cmd_scan)
-    # Listed so `self -h` mentions it; never actually parsed here, because
-    # the arguments are dispatched below.
-    sub.add_parser("closure", add_help=False,
-                   help="pack binaries + their closures into one DB")
-    argv = list(sys.argv[1:] if argv is None else argv)
 
-    # `closure` owns its own argument list. Restating it here is what let the
-    # two spellings drift apart, and REMAINDER cannot carry it: argparse
-    # matches a leading --flag against this parser before the subcommand ever
-    # sees it. So hand the tail over untouched.
-    if argv and argv[0] == "closure":
-        from . import closure
-        return closure.main(argv[1:])
+    p = sub.add_parser("closure",
+                       help="pack binaries + their closures into one DB")
+    p.add_argument("binary", nargs="?", help="a root; repeat with --root")
+    p.add_argument("out", nargs="?", help="default: <binary>.closure.db")
+    p.add_argument("--root", action="append", default=[], metavar="PATH",
+                   help="an additional root; may be given more than once")
+    p.add_argument("--roots-from", metavar="FILE",
+                   help="read roots from FILE, one per line ('-' for stdin)")
+    p.add_argument("-o", "--out", dest="out_flag", metavar="DB",
+                   help="output database; required when no positional root")
+    p.add_argument("--no-segments", action="store_true",
+                   help="metadata only (graph + symbols, no segment bytes)")
+    p.set_defaults(fn=cmd_closure, parser=p)
 
-    args = ap.parse_args(argv)
+    p = sub.add_parser("elf2self",
+                       help="convert an ELF object into a SELF database")
+    p.add_argument("elf")
+    p.add_argument("out", nargs="?", help="default: <elf>.self")
+    p.add_argument("--no-sections", action="store_true",
+                   help="omit the optional sections table (pre-stripped)")
+    p.set_defaults(fn=cmd_elf2self)
+
+    args = ap.parse_args(sys.argv[1:] if argv is None else argv)
     return args.fn(args)
 
 

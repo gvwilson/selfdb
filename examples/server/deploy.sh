@@ -47,7 +47,7 @@ if ! pkg-config --exists sqlite3; then
 	sudo apt-get install -y -qq libsqlite3-dev build-essential pkg-config python3-venv
 fi
 
-# elf2self needs LIEF; a venv keeps it out of the system python.
+# self elf2self needs LIEF; a venv keeps it out of the system python.
 if [ ! -x ~/selfvenv/bin/python ]; then
 	python3 -m venv ~/selfvenv
 	~/selfvenv/bin/pip install -q lief

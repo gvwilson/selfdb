@@ -6,7 +6,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 SELF_EXEC="$repo/loader/self-exec"
 csv="$repo/bench/big.csv"
 md="$repo/bench/big.md"
@@ -31,7 +31,7 @@ for row in "${rows[@]}"; do
   IFS='|' read -r name src args <<<"$row"
   # coreutils dispatches on basename(argv[0]); name the .self so it matches
   base=$([ "$name" = coreutils ] && echo ls || echo "$name")
-  python -m selfconv.elf2self "$src" "$base.self" >/dev/null 2>&1
+  python -m selfconv elf2self "$src" "$base.self" >/dev/null 2>&1
   libs=$(ldd "$src" 2>/dev/null | grep -c "=>" || true)
   esz=$(stat -c%s "$src"); ssz=$(stat -c%s "$base.self")
   hyperfine -N --warmup 10 --min-runs 60 --export-json elf.json    "$src $args" >/dev/null

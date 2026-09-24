@@ -16,7 +16,7 @@ repo="$(cd "$here/../.." && pwd)"
 out="${1:-$PWD/server}"
 strip_tables="${SELF_STRIP:-0}"
 
-export PYTHONPATH="$repo/converter${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$repo${PYTHONPATH:+:$PYTHONPATH}"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -28,7 +28,7 @@ elf_bytes=$(stat -c%s "$work/server.elf")
 
 # ── 2. the same program, as rows ──────────────────────────────────────
 rm -f "$out"
-python3 -m selfconv.elf2self "$work/server.elf" "$out"
+python3 -m selfconv elf2self "$work/server.elf" "$out"
 
 # ── 3. the website, added to the executable with SQL ──────────────────
 sqlite3 "$out" < "$here/site/schema.sql"
