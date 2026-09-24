@@ -50,7 +50,7 @@
       echo "== binfmt registration:"
       cat /proc/sys/fs/binfmt_misc/self || echo "  (self not registered!)"
       cp ${pkgs.hello}/bin/hello hello.elf
-      elf2self hello.elf hello.self
+      self elf2self hello.elf hello.self
       chmod +x hello.self
       echo "== file(1) sees a database:"
       ${pkgs.file}/bin/file hello.self

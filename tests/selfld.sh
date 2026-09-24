@@ -6,7 +6,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 SELF_EXEC="$repo/loader/self-exec"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -44,13 +44,13 @@ test "$rc" -eq 42
 pass "baseline: freestanding ELF app+lib exits 42"
 
 # ── convert BOTH to SELF, remove the ELF library, index it ───────────
-python -m selfconv.elf2self libadd.so.1 libadd.so.1.self
-python -m selfconv.elf2self app app.self
+python -m selfconv elf2self libadd.so.1 libadd.so.1.self
+python -m selfconv elf2self app app.self
 rm -f libadd.so.1                       # library now only exists as SQLite
-python -m selfconv.cli scan --db system.db libadd.so.1.self
+python -m selfconv scan --db system.db libadd.so.1.self
 
 echo "reloc types self-ld must satisfy in app.self:"
-python -m selfconv.cli q app.self \
+python -m selfconv q app.self \
   "SELECT DISTINCT type FROM relocations"
 
 # ── run under self-ld: it maps both, resolves add() via SQL, binds ──

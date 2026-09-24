@@ -23,7 +23,7 @@ stdenv.mkDerivation {
       for f in "$out/$d"/*; do
         [ -f "$f" ] || continue
         if file -b "$f" | grep -q '^ELF .* executable'; then
-          elf2self "$f" "$f.self"
+          self elf2self "$f" "$f.self"
           mv "$f.self" "$f"
           chmod +x "$f"
         fi

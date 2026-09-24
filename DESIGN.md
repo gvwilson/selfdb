@@ -84,7 +84,7 @@ consumer.
 
 Three deliverable layers, each independently demo-able:
 
-1. **Format + converter** (`elf2self`, `self2elf`, `self` CLI) — the schema,
+1. **Format + converter** (`self elf2self`, `self2elf`) — the schema,
    round-trip fidelity, and the "SQL beats readelf" showcase.
 2. **Execution** (`self-exec` registered via binfmt_misc) — `./hello.self`
    just works; milestones M1→M3 make the execution progressively more
@@ -541,7 +541,7 @@ selfdb/
   DESIGN.md            # this file
   flake.nix            # devshell now; packages/nixosConfigurations as they land
   schema/self.sql      # authoritative DDL (v1)
-  converter/           # elf2self / self2elf / self CLI  (python + LIEF)
+  selfconv/            # self CLI (elf2self) / self2elf   (python + LIEF)
   loader/              # self-exec (C, libsqlite3)
   nix/                 # selfifyHook, NixOS module, self-vm
   bench/               # hyperfine + size + pss harnesses
@@ -586,7 +586,7 @@ all with `nix develop -c bash tests/all.sh`; boot the VM with
 
 | Milestone | Status | Evidence |
 |---|---|---|
-| **M0** format + converter | ✅ done | `converter/selfconv/` (`elf2self`, `self2elf`, `self`), `schema/self.sql`; `tests/roundtrip.sh` round-trips `hello` + nixpkgs `ls`, strips via `DELETE`+`VACUUM`, still runs |
+| **M0** format + converter | ✅ done | `selfconv/` (`self` CLI incl. `elf2self`, `self2elf`), `schema/self.sql`; `tests/roundtrip.sh` round-trips `hello` + nixpkgs `ls`, strips via `DELETE`+`VACUUM`, still runs |
 | **M1** memfd loader | ✅ done | `loader/self-exec.c` + `image.c`; `nix/module.nix` binfmt registration; VM boots and runs `./hello.self` → `SELF-DEMO-OK` |
 | **M2** native loader | ✅ done | `loader/native.c` maps segments + ld.so, synth stack/auxv; `tests/loader.sh` runs `hello`/`ls`/`readlink` native; VM → `SELF-NATIVE-OK` |
 | **M3a** LD_AUDIT resolver | ✅ done | `loader/audit.c` (`libself-audit.so`); `tests/audit.sh` deletes the ELF `libgreet`, runs it from SQLite via stock glibc |
@@ -604,7 +604,7 @@ all with `nix develop -c bash tests/all.sh`; boot the VM with
   `symtab`) so `exports`/`imports` views can filter correctly. `relocations`
   stores both a readable `type` and the raw `rtype` number (self-ld needs the
   number; humans want the name). The authoritative DDL lives in
-  `converter/selfconv/schema.py`, generated into `schema/self.sql`.
+  `selfconv/schema.py`, generated into `schema/self.sql`.
 - **binfmt flags.** The design proposed `O`+`F`+`P`. We ship with **none of
   them**: `P` (preserve-argv0) makes the kernel inject the original `argv[0]`
   as an extra leading operand that strict programs (GNU hello) reject.

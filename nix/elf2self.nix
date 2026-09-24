@@ -3,7 +3,7 @@ python3Packages.buildPythonApplication {
   pname = "selfconv";
   version = "0.1.0";
   pyproject = true;
-  src = ../converter;
+  src = ../.;
   build-system = [ python3Packages.setuptools ];
   dependencies = [ python3Packages.lief ];
   # No test suite packaged here; round-trip tests run from the devshell.

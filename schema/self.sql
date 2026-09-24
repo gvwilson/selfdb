@@ -1,6 +1,6 @@
 -- SELF: the Structured Executable & Linkable Format, v1
 -- A program is a SQLite database. This file is generated from
--- converter/selfconv/schema.py -- edit there.
+-- selfconv/schema.py -- edit there.
 --
 -- PRAGMA application_id = 0x53454C46 ('SELF'), PRAGMA user_version = 1.
 -- Identification: binfmt_misc magic 'SELF' at byte offset 68.

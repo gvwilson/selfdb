@@ -10,7 +10,7 @@ FORMAT_VERSION = 1
 SCHEMA_SQL = f"""\
 -- SELF: the Structured Executable & Linkable Format, v{FORMAT_VERSION}
 -- A program is a SQLite database. This file is generated from
--- converter/selfconv/schema.py -- edit there.
+-- selfconv/schema.py -- edit there.
 --
 -- PRAGMA application_id = 0x53454C46 ('SELF'), PRAGMA user_version = {FORMAT_VERSION}.
 -- Identification: binfmt_misc magic 'SELF' at byte offset 68.

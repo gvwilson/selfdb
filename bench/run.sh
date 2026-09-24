@@ -4,7 +4,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 SELF_EXEC="$repo/loader/self-exec"
 out="$repo/bench/results.md"
 work="$(mktemp -d)"
@@ -43,7 +43,7 @@ mean_ms() { python3 -c "import json,sys;print(f\"{json.load(open('$1'))['results
 } > "$out"
 
 for subj in hello noop; do
-  python -m selfconv.elf2self "$subj" "$subj.self" >/dev/null 2>&1
+  python -m selfconv elf2self "$subj" "$subj.self" >/dev/null 2>&1
   hyperfine_json "$work/$subj"                                       elf.json
   hyperfine_json "env SELF_MODE=memfd  $SELF_EXEC $work/$subj.self"  memfd.json
   hyperfine_json "env SELF_MODE=native $SELF_EXEC $work/$subj.self"  native.json
@@ -63,7 +63,7 @@ done
 
 for subj in hello "$(readlink -f "$(type -P ls)")"; do
   name=$(basename "$subj")
-  python -m selfconv.elf2self "$subj" "$name.full.self" >/dev/null 2>&1
+  python -m selfconv elf2self "$subj" "$name.full.self" >/dev/null 2>&1
   cp "$name.full.self" "$name.strip.self"
   sqlite3 "$name.strip.self" "DELETE FROM sections; DELETE FROM notes; DELETE FROM symbols WHERE source='symtab'; VACUUM;"
   e=$(stat -c%s "$subj"); f=$(stat -c%s "$name.full.self"); s=$(stat -c%s "$name.strip.self")

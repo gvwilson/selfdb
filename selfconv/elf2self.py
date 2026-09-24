@@ -1,15 +1,11 @@
 """elf2self: convert an ELF object into a SELF database."""
 
-import argparse
 import json
 import os
 import sqlite3
 import stat
-import sys
 
-from . import elfimage
-from .elfimage import PF_R, PF_W, PF_X, PT_INTERP
-from .schema import APPLICATION_ID, FORMAT_VERSION, SCHEMA_SQL
+from . import elfimage, schema
 
 
 def _enum_name(value) -> str:
@@ -88,21 +84,21 @@ def convert(elf_path: str, self_path: str, with_sections: bool = True) -> None:
         os.remove(self_path)
     con = sqlite3.connect(self_path)
     con.execute("PRAGMA page_size = 4096")
-    con.executescript(SCHEMA_SQL)
-    con.execute(f"PRAGMA application_id = {APPLICATION_ID}")
-    con.execute(f"PRAGMA user_version = {FORMAT_VERSION}")
+    con.executescript(schema.SCHEMA_SQL)
+    con.execute(f"PRAGMA application_id = {schema.APPLICATION_ID}")
+    con.execute(f"PRAGMA user_version = {schema.FORMAT_VERSION}")
 
     # ── segments (the load-bearing part; straight from the raw image) ──
     interp = None
     for i, p in enumerate(phdrs):
-        if p.ptype == PT_INTERP:
+        if p.ptype == elfimage.PT_INTERP:
             interp = data[p.offset:p.offset + p.filesz].rstrip(b"\0").decode()
         con.execute(
             "INSERT INTO segments (id, type, ptype, offset, vaddr, filesz,"
             " memsz, r, w, x, align, content) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (i, p.type_name, p.ptype, p.offset, p.vaddr, p.filesz, p.memsz,
-             1 if p.flags & PF_R else 0, 1 if p.flags & PF_W else 0,
-             1 if p.flags & PF_X else 0, p.align,
+             1 if p.flags & elfimage.PF_R else 0, 1 if p.flags & elfimage.PF_W else 0,
+             1 if p.flags & elfimage.PF_X else 0, p.align,
              sqlite3.Binary(p.content) if p.content is not None else None))
 
     # ── dynamic linking tables (via LIEF) ──────────────────────────────
@@ -163,7 +159,7 @@ def convert(elf_path: str, self_path: str, with_sections: bool = True) -> None:
 
     # ── identity ───────────────────────────────────────────────────────
     meta = {
-        "format_version": FORMAT_VERSION,
+        "format_version": schema.FORMAT_VERSION,
         "type": elfimage.ET_NAMES.get(ehdr.et, str(ehdr.et)), "et": ehdr.et,
         "machine": elfimage.EM_NAMES.get(ehdr.em, f"em{ehdr.em}"), "em": ehdr.em,
         "class": 64, "byte_order": "little", "osabi": ehdr.osabi,
@@ -182,7 +178,7 @@ def convert(elf_path: str, self_path: str, with_sections: bool = True) -> None:
          "Explore it: `.tables`, `.schema`, SELECT * FROM ldd; "
          "SELECT name FROM exports;. It runs via a binfmt_misc interpreter "
          "that maps the rows in `segments`. See https://github.com/fzakaria/selfdb"
-         % FORMAT_VERSION))
+         % schema.FORMAT_VERSION))
 
     con.commit()
     con.execute("VACUUM")
@@ -191,21 +187,3 @@ def convert(elf_path: str, self_path: str, with_sections: bool = True) -> None:
     if os.access(elf_path, os.X_OK):
         st = os.stat(self_path)
         os.chmod(self_path, st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(
-        description="Convert an ELF object into a SELF (SQLite) executable.")
-    ap.add_argument("elf")
-    ap.add_argument("out", nargs="?", help="default: <elf>.self")
-    ap.add_argument("--no-sections", action="store_true",
-                    help="omit the optional sections table (pre-stripped)")
-    args = ap.parse_args(argv)
-    out = args.out or args.elf + ".self"
-    convert(args.elf, out, with_sections=not args.no_sections)
-    print(f"{args.elf} -> {out}", file=sys.stderr)
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

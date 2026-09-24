@@ -4,7 +4,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 AUDIT="$repo/loader/libself-audit.so"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -36,8 +36,8 @@ grep -q "SQLite library" expected.txt
 pass "baseline: app runs against the ELF libgreet"
 
 # ── convert the library to SELF and REMOVE the ELF ───────────────────
-python -m selfconv.elf2self libgreet.so.1.orig libgreet.so.1.self
-echo "soname: $(python -m selfconv.cli q libgreet.so.1.self \
+python -m selfconv elf2self libgreet.so.1.orig libgreet.so.1.self
+echo "soname: $(python -m selfconv q libgreet.so.1.self \
   "SELECT value FROM self_meta WHERE key='soname'")"
 rm -f libgreet.so.1 libgreet.so.1.orig          # no ELF library on disk now
 
@@ -49,7 +49,7 @@ fi
 pass "with the ELF removed, ./app fails to start (no libgreet on disk)"
 
 # ── index the .self into a resolver DB and run under the audit hook ──
-python -m selfconv.cli scan --db system.db .
+python -m selfconv scan --db system.db .
 sqlite3 system.db "SELECT soname, kind, path FROM objects WHERE soname LIKE 'libgreet%'"
 
 SELF_AUDIT_DEBUG=1 SELF_SYSTEM_DB="$PWD/system.db" LD_AUDIT="$AUDIT" \

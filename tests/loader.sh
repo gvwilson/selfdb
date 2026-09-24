@@ -4,7 +4,7 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-export PYTHONPATH="$repo/converter"
+export PYTHONPATH="$repo"
 SELF_EXEC="$repo/loader/self-exec"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 }
 EOF
 cc hello.c -o hello
-python -m selfconv.elf2self hello hello.self
+python -m selfconv elf2self hello hello.self
 
 for mode in memfd native; do
 	set +e
@@ -49,7 +49,7 @@ done
 # argv[0] to the file path, whose basename is 'ls').
 for prog in ls readlink; do
 	src="$(command -v $prog)"
-	python -m selfconv.elf2self "$src" "$prog"
+	python -m selfconv elf2self "$src" "$prog"
 	for mode in memfd native; do
 		"$src" --version | head -1 > "exp_$prog.txt"
 		SELF_MODE=$mode "$SELF_EXEC" "./$prog" --version | head -1 > "got_${prog}_$mode.txt"

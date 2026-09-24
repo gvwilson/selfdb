@@ -10,12 +10,9 @@ linking becomes a foreign-key JOIN with no soname guessing -- one DB per
 "tree", exactly the closure Nix already computes.
 """
 
-import argparse
 import os
-import shutil
 import sqlite3
 import subprocess
-import sys
 
 from . import elfimage
 from .elfimage import PF_R, PF_W, PF_X
@@ -229,54 +226,3 @@ def build_closure(roots, out: str, with_segments: bool = True) -> dict:
     }
     con.close()
     return stats
-
-
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(
-        description="Pack one or more binaries and their dependency closures "
-                    "into one SQLite database (resolution as a foreign key).")
-    # The one-root form stays exactly as it was: `self closure BIN [OUT]`.
-    ap.add_argument("binary", nargs="?", help="a root; repeat with --root")
-    ap.add_argument("out", nargs="?", help="default: <binary>.closure.db")
-    ap.add_argument("--root", action="append", default=[], metavar="PATH",
-                    help="an additional root; may be given more than once")
-    ap.add_argument("--roots-from", metavar="FILE",
-                    help="read roots from FILE, one per line ('-' for stdin)")
-    ap.add_argument("-o", "--out", dest="out_flag", metavar="DB",
-                    help="output database; required when no positional root")
-    ap.add_argument("--no-segments", action="store_true",
-                    help="metadata only (graph + symbols, no segment bytes)")
-    args = ap.parse_args(argv)
-
-    if not shutil.which("ldd"):
-        print("self closure: needs ldd on PATH", file=sys.stderr)
-        return 1
-
-    roots = ([args.binary] if args.binary else []) + args.root
-    if args.roots_from:
-        stream = sys.stdin if args.roots_from == "-" else open(args.roots_from)
-        with stream:
-            roots += [line.strip() for line in stream if line.strip()]
-    if not roots:
-        ap.error("give a root as an argument, with --root, or via --roots-from")
-
-    # The second positional is the output only in the one-root form; with
-    # --root or --roots-from there is nothing to distinguish it from a root,
-    # so those spellings ask for -o instead.
-    out = args.out_flag or args.out
-    if out is None:
-        if len(roots) > 1:
-            ap.error("several roots need an explicit -o/--out")
-        out = roots[0] + ".closure.db"
-
-    stats = build_closure(roots, out, with_segments=not args.no_segments)
-    for path in stats["skipped"]:
-        print(f"self closure: skipping {path}: not an ELF file", file=sys.stderr)
-    print(f"{stats['roots']} root(s) + closure -> {out} "
-          f"({stats['objects']} objects, {stats['edges']} edges)",
-          file=sys.stderr)
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
